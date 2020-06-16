@@ -64,14 +64,14 @@ ${output.trim()}
       });
 
       if (comments.length) {
-        const previousComment = comments.find(comment => {
-          core.debug(`${comment.user.login}, ${comment.user.id}`);
-          return comment.body.includes(commentIntro);
-        });
+        const previousComment = comments.find(
+          comment =>
+            comment.user.login === 'github-actions[bot]' &&
+            comment.body.includes(commentIntro)
+        );
 
         if (previousComment) {
           // Update existing comment
-
           octokit.issues.updateComment({
             owner,
             repo,

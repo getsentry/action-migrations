@@ -1,19 +1,32 @@
-import * as core from '@actions/core'
-import {wait} from './wait'
+import * as core from '@actions/core';
+import {exec} from '@actions/exec';
 
 async function run(): Promise<void> {
   try {
-    const ms: string = core.getInput('milliseconds')
-    core.debug(`Waiting ${ms} milliseconds ...`)
+    const migration: string = core.getInput('migration');
+    core.debug(`Generating SQL for migration: ${migration} ...`);
 
-    core.debug(new Date().toTimeString())
-    await wait(parseInt(ms, 10))
-    core.debug(new Date().toTimeString())
+    let output = '';
+    let error = '';
+    await exec('sentry', ['django', 'sqlmigrate', 'sentry', migration], {
+      listeners: {
+        stdout: (data: Buffer) => {
+          output += data.toString();
+        },
+        stderr: (data: Buffer) => {
+          error += data.toString();
+        },
+      },
+    });
 
-    core.setOutput('time', new Date().toTimeString())
+    core.debug(output);
+
+    if (error) {
+      core.setFailed(error);
+    }
   } catch (error) {
-    core.setFailed(error.message)
+    core.setFailed(error.message);
   }
 }
 
-run()
+run();

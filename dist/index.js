@@ -1250,6 +1250,7 @@ const fs_1 = __importDefault(__webpack_require__(747));
 const core = __importStar(__webpack_require__(470));
 const github = __importStar(__webpack_require__(469));
 const exec_1 = __webpack_require__(986);
+const commentIntro = 'This PR has a migration; here is the generated SQL';
 function run() {
     return __awaiter(this, void 0, void 0, function* () {
         try {
@@ -1257,10 +1258,16 @@ function run() {
             if (!migration) {
                 return;
             }
-            core.debug(`Generating SQL for migration: ${migration} ...`);
+            // Transform migration into usable name (e.g. either number or filename w/o extension)
+            const migrationName = migration
+                .trim()
+                .split('/')
+                .slice(-1)[0]
+                .replace('.py', '');
+            core.debug(`Generating SQL for migration: ${migrationName} ...`);
             let output = '';
             let error = '';
-            yield exec_1.exec('sentry', ['django', 'sqlmigrate', 'sentry', migration], {
+            yield exec_1.exec('sentry', ['django', 'sqlmigrate', 'sentry', migrationName], {
                 listeners: {
                     stdout: (data) => {
                         output += data.toString();
@@ -1280,17 +1287,40 @@ function run() {
                 const [owner, repo] = (process.env.GITHUB_REPOSITORY || '').split('/');
                 const ev = JSON.parse(fs_1.default.readFileSync(process.env.GITHUB_EVENT_PATH || '', 'utf8'));
                 const prNum = ev.pull_request.number;
-                octokit.issues.createComment({
-                    owner,
-                    repo,
-                    issue_number: prNum,
-                    body: `This PR has a migration; here is the generated SQL
+                const body = `${commentIntro}
 
 \`\`\`
 ${output.trim()}
 \`\`\`
 
-`.trim(),
+`.trim();
+                // Look for existing comment
+                const { data: comments } = yield octokit.issues.listComments({
+                    owner,
+                    repo,
+                    issue_number: prNum,
+                });
+                if (comments.length) {
+                    const previousComment = comments.find(comment => {
+                        core.debug(`${comment.user.login}, ${comment.user.id}`);
+                        return comment.body.includes(commentIntro);
+                    });
+                    if (previousComment) {
+                        // Update existing comment
+                        octokit.issues.updateComment({
+                            owner,
+                            repo,
+                            comment_id: previousComment.id,
+                            body,
+                        });
+                        return;
+                    }
+                }
+                octokit.issues.createComment({
+                    owner,
+                    repo,
+                    issue_number: prNum,
+                    body,
                 });
             }
             else {

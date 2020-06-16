@@ -38,9 +38,13 @@ async function run(): Promise<void> {
         owner,
         repo,
         issue_number: prNum,
-        body: output,
-        // commit_id: GITHUB_SHA,
-        // path,
+        body: `
+        This PR has a migration; here is the generated SQL
+
+        \`\`\`
+        ${output}
+        \`\`\`
+        `,
       });
     } else {
       core.debug('Empty output from migration');

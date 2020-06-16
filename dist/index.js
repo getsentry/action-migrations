@@ -1281,7 +1281,13 @@ function run() {
                     owner,
                     repo,
                     issue_number: prNum,
-                    body: output,
+                    body: `
+        This PR has a migration; here is the generated SQL
+
+        \`\`\`
+        ${output}
+        \`\`\`
+        `,
                 });
             }
             else {

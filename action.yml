@@ -1,10 +1,11 @@
-name: 'Your name here'
-description: 'Provide a description here'
-author: 'Your name or organization here'
+name: 'action-migrations'
+description: 'Actions related to django migrations in sentry'
+author: 'sentry.io'
 inputs:
-  myInput:              # change this
-    description: 'input description here'
-    default: 'default value if applicable'
+  migration:
+    description: 'file name (or number) for the migration'
+  githubToken:
+    description: 'GitHub Token (available as `secrets.GITHUB_TOKEN`)'
 runs:
   using: 'node12'
   main: 'dist/index.js'

@@ -1,4 +1,7 @@
+import fs from 'fs';
+
 import * as core from '@actions/core';
+import * as github from '@actions/github';
 import {exec} from '@actions/exec';
 
 async function run(): Promise<void> {
@@ -19,10 +22,28 @@ async function run(): Promise<void> {
       },
     });
 
-    core.debug(output);
-
     if (error) {
       core.setFailed(error);
+    } else if (output) {
+      core.debug(output);
+      const token = core.getInput('githubToken');
+      const octokit = github.getOctokit(token);
+      const [owner, repo] = (process.env.GITHUB_REPOSITORY || '').split('/');
+      const ev = JSON.parse(
+        fs.readFileSync(process.env.GITHUB_EVENT_PATH || '', 'utf8')
+      );
+      const prNum = ev.pull_request.number;
+
+      octokit.issues.createComment({
+        owner,
+        repo,
+        issue_number: prNum,
+        body: output,
+        // commit_id: GITHUB_SHA,
+        // path,
+      });
+    } else {
+      core.debug('Empty output from migration');
     }
   } catch (error) {
     core.setFailed(error.message);

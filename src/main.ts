@@ -7,10 +7,15 @@ import {exec} from '@actions/exec';
 async function run(): Promise<void> {
   try {
     const migration: string = core.getInput('migration');
+    if (!migration) {
+      return;
+    }
+
     core.debug(`Generating SQL for migration: ${migration} ...`);
 
     let output = '';
     let error = '';
+
     await exec('sentry', ['django', 'sqlmigrate', 'sentry', migration], {
       listeners: {
         stdout: (data: Buffer) => {
@@ -41,10 +46,10 @@ async function run(): Promise<void> {
         body: `This PR has a migration; here is the generated SQL
 
 \`\`\`
-${output}
+${output.trim()}
 \`\`\`
 
-`,
+`.trim(),
       });
     } else {
       core.debug('Empty output from migration');

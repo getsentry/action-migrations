@@ -1254,6 +1254,9 @@ function run() {
     return __awaiter(this, void 0, void 0, function* () {
         try {
             const migration = core.getInput('migration');
+            if (!migration) {
+                return;
+            }
             core.debug(`Generating SQL for migration: ${migration} ...`);
             let output = '';
             let error = '';
@@ -1284,10 +1287,10 @@ function run() {
                     body: `This PR has a migration; here is the generated SQL
 
 \`\`\`
-${output}
+${output.trim()}
 \`\`\`
 
-`,
+`.trim(),
                 });
             }
             else {

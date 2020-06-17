@@ -54,9 +54,9 @@ Please wait while I generate the SQL ...
 
 async function run(): Promise<void> {
   try {
-    const actionInput: string = core.getInput('action');
+    const runInput: string = core.getInput('run');
 
-    if (actionInput === 'placeholder') {
+    if (runInput === 'placeholder') {
       core.debug('Creating placeholder comment...');
       await createPlaceholderComment();
       core.debug('Finished creating placeholder comment...');

@@ -2,7 +2,7 @@ name: 'action-migrations'
 description: 'Actions related to django migrations in sentry'
 author: 'sentry.io'
 inputs:
-  action:
+  run:
     description: 'Action for the action to take. Possible values: null, "placeholder"'
   migration:
     description: 'file name (or number) for the migration'

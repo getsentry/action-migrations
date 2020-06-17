@@ -1293,8 +1293,8 @@ Please wait while I generate the SQL ...
 function run() {
     return __awaiter(this, void 0, void 0, function* () {
         try {
-            const actionInput = core.getInput('action');
-            if (actionInput === 'placeholder') {
+            const runInput = core.getInput('run');
+            if (runInput === 'placeholder') {
                 core.debug('Creating placeholder comment...');
                 yield createPlaceholderComment();
                 core.debug('Finished creating placeholder comment...');

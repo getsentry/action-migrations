@@ -1321,7 +1321,12 @@ function run() {
                 },
             });
             if (error) {
-                core.setFailed(error);
+                if (error.includes('CryptographyDeprecationWarning')) {
+                    core.warning(error);
+                }
+                else {
+                    core.setFailed(error);
+                }
             }
             else if (output) {
                 core.debug(output);

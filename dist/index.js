@@ -1328,7 +1328,7 @@ function run() {
                     core.setFailed(error);
                 }
             }
-            else if (output) {
+            if (output) {
                 core.debug(output);
                 const body = `${commentIntro}
 

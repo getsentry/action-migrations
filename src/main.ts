@@ -94,7 +94,9 @@ async function run(): Promise<void> {
       } else {
         core.setFailed(error);
       }
-    } else if (output) {
+    }
+
+    if (output) {
       core.debug(output);
 
       const body = `${commentIntro}

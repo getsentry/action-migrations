@@ -23,6 +23,10 @@
   ],
   "author": "Sentry",
   "license": "MIT",
+  "resolutions": {
+    "lodash": "^4.17.19",
+    "node-fetch": "^2.6.1"
+  },
   "dependencies": {
     "@actions/core": "^1.2.6",
     "@actions/exec": "^1.0.4",

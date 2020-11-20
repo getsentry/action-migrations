@@ -1387,7 +1387,8 @@ function run() {
                 if (error.includes('CryptographyDeprecationWarning')) {
                     core.warning(error);
                 }
-                else {
+                else if (!error.includes('Using configuration')) {
+                    // XXX: No idea why `Using configuration...` prints to stderr...
                     core.setFailed(error);
                 }
             }

@@ -1356,6 +1356,7 @@ function run() {
     return __awaiter(this, void 0, void 0, function* () {
         try {
             const runInput = core.getInput('run');
+            const command = core.getInput('cmd');
             if (runInput === 'placeholder') {
                 core.debug('Creating placeholder comment...');
                 yield createPlaceholderComment();
@@ -1372,7 +1373,7 @@ function run() {
             core.debug(`Generating SQL for migration: ${migrationName} ...`);
             let output = '';
             let error = '';
-            yield exec_1.exec('sentry', ['django', 'sqlmigrate', 'sentry', migrationName], {
+            yield exec_1.exec(command, [migrationName], {
                 listeners: {
                     stdout: (data) => {
                         output += data.toString();

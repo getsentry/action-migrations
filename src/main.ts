@@ -55,6 +55,7 @@ Please wait while I generate the SQL ...
 async function run(): Promise<void> {
   try {
     const runInput: string = core.getInput('run');
+    const command: string = core.getInput('cmd');
 
     if (runInput === 'placeholder') {
       core.debug('Creating placeholder comment...');
@@ -77,7 +78,7 @@ async function run(): Promise<void> {
     let output = '';
     let error = '';
 
-    await exec('sentry', ['django', 'sqlmigrate', 'sentry', migrationName], {
+    await exec(command, [migrationName], {
       listeners: {
         stdout: (data: Buffer) => {
           output += data.toString();
@@ -91,7 +92,8 @@ async function run(): Promise<void> {
     if (error) {
       if (error.includes('CryptographyDeprecationWarning')) {
         core.warning(error);
-      } else {
+      } else if (!error.includes('Using configuration')) {
+        // XXX: No idea why `Using configuration...` prints to stderr...
         core.setFailed(error);
       }
     }

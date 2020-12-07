@@ -73,10 +73,22 @@ async function run(): Promise<void> {
 
     // Transform migration input into usable name (e.g. either number or filename w/o extension)
     const migrationName = getMigrationName(migrationInput);
-    core.debug(`Generating SQL for migration: ${migrationName} ...`);
+
+    // Need to rollback to the migration before `migrationName`
+    const rollbackCommand = command.replace('sqlmigrate', 'migrate');
+    const rollbackVersionNumber = parseInt(migrationName, 10) - 1;
+    const rollbackTo =
+      rollbackVersionNumber > 999
+        ? String(rollbackVersionNumber)
+        : `0${rollbackVersionNumber}`;
+
+    core.debug(`Rolling back to ${rollbackTo} ...`);
+    await exec(rollbackCommand, [rollbackTo]);
 
     let output = '';
     let error = '';
+
+    core.debug(`Generating SQL for migration: ${migrationName} ...`);
 
     await exec(command, [migrationName], {
       listeners: {

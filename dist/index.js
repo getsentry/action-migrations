@@ -7242,11 +7242,16 @@ module.exports = require("http");
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.getMigrationName = void 0;
 function getMigrationName(name) {
-    return name
-        .trim()
+    const pathRegex = /([']?)(.*?)([']?)$/;
+    const matches = name.trim().match(pathRegex);
+    if (!matches) {
+        return '';
+    }
+    const [, startQuote, path, endQuote] = matches;
+    return `${startQuote}${path
         .split('/')
         .slice(-1)[0]
-        .replace('.py', '');
+        .replace('.py', '')}${endQuote}`;
 }
 exports.getMigrationName = getMigrationName;
 

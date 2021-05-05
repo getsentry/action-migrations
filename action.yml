@@ -3,13 +3,18 @@ description: 'Actions related to django migrations in sentry'
 author: 'sentry.io'
 inputs:
   cmd:
+    required: false
     description: "The command to run to generate SQL"
     default: "sentry django sqlmigrate sentry"
   run:
+    required: false
     description: 'Action for the action to take. Possible values: null, "placeholder"'
   migration:
+    required: true
     description: 'file name (or number) for the migration'
   githubToken:
+    required: false
+    default: '${{ github.token }}'
     description: 'GitHub Token (available as `secrets.GITHUB_TOKEN`)'
 runs:
   using: 'node12'

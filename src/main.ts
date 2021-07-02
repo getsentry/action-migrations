@@ -78,7 +78,7 @@ async function run(): Promise<void> {
     let output = '';
     let error = '';
 
-    await exec(command, [migrationName], {
+    const returnCode = await exec(command, [migrationName], {
       listeners: {
         stdout: (data: Buffer) => {
           output += data.toString();
@@ -89,6 +89,7 @@ async function run(): Promise<void> {
       },
     });
 
+    console.log(returnCode);
     if (error) {
       if (error.includes('CryptographyDeprecationWarning')) {
         core.warning(error);

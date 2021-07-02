@@ -78,7 +78,7 @@ async function run(): Promise<void> {
     let output = '';
     let error = '';
 
-    const returnCode = await exec(command, [migrationName], {
+    const exitCode = await exec(command, [migrationName], {
       listeners: {
         stdout: (data: Buffer) => {
           output += data.toString();
@@ -89,13 +89,11 @@ async function run(): Promise<void> {
       },
     });
 
-    console.log(returnCode);
     if (error) {
-      if (error.includes('CryptographyDeprecationWarning')) {
-        core.warning(error);
-      } else if (!error.includes('Using configuration')) {
-        // XXX: No idea why `Using configuration...` prints to stderr...
+      if (exitCode > 0) {
         core.setFailed(error);
+      } else {
+        core.warning(error);
       }
     }
 

@@ -1373,7 +1373,7 @@ function run() {
             core.debug(`Generating SQL for migration: ${migrationName} ...`);
             let output = '';
             let error = '';
-            const returnCode = yield exec_1.exec(command, [migrationName], {
+            const exitCode = yield exec_1.exec(command, [migrationName], {
                 listeners: {
                     stdout: (data) => {
                         output += data.toString();
@@ -1383,14 +1383,12 @@ function run() {
                     },
                 },
             });
-            console.log(returnCode);
             if (error) {
-                if (error.includes('CryptographyDeprecationWarning')) {
-                    core.warning(error);
-                }
-                else if (!error.includes('Using configuration')) {
-                    // XXX: No idea why `Using configuration...` prints to stderr...
+                if (exitCode > 0) {
                     core.setFailed(error);
+                }
+                else {
+                    core.warning(error);
                 }
             }
             if (output) {

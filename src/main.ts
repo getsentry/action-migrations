@@ -54,6 +54,7 @@ Please wait while I generate the SQL ...
 
 async function run(): Promise<void> {
   try {
+    console.log(JSON.stringify(github.context, null, 2));
     const runInput: string = core.getInput('run');
     const command: string = core.getInput('cmd');
     const migrationInput: string = core.getInput('migration');

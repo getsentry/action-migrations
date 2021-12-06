@@ -1355,6 +1355,7 @@ Please wait while I generate the SQL ...
 function run() {
     return __awaiter(this, void 0, void 0, function* () {
         try {
+            console.log(JSON.stringify(github.context, null, 2));
             const runInput = core.getInput('run');
             const command = core.getInput('cmd');
             const migrationInput = core.getInput('migration');

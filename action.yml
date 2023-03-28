@@ -6,6 +6,10 @@ inputs:
     required: false
     description: "The command to run to generate SQL"
     default: "sentry django sqlmigrate sentry"
+  commentHeader:
+    required: false
+    description: "Override for the default 'This PR has a migration' message."
+    default: "This PR has a migration; here is the generated SQL for "
   run:
     required: false
     description: 'Action for the action to take. Possible values: null, "placeholder"'

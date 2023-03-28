@@ -47,22 +47,4 @@ In your workflow file
       migration: "./path/to/migration"
 ```
 
-### Usage as generic "github commenter bot"
-
-This action can also be used to post arbitrary comments based off of the most
-recent build for a PR.
-
-Take a look at how [snuba](https://github.com/getsentry/snuba/blob/master/.github/workflows/ddl-changes.yml) uses this action. Example:
-
-```
-      - name: Generate some linting result
-        uses: getsentry/action-migrations@v1.0.8
-        with:
-          githubToken: ${{ secrets.GITHUB_TOKEN }}
-          # need to set this to a nonempty string, it will be passed to the
-          # script as cmdline arg
-          migration: "bogus value"
-          cmd: python scripts/check-for-dangerous-changes.py
-          # Replace the default "This PR has a migration" intro.
-          commentHeader: "We have found some dangerous change that is not related to SQL"
-```
+See [action.yml](action.yml) for more arguments.

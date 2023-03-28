@@ -63,4 +63,6 @@ Take a look at how [snuba](https://github.com/getsentry/snuba/blob/master/.githu
           # script as cmdline arg
           migration: "bogus value"
           cmd: python scripts/check-for-dangerous-changes.py
+          # Replace the default "This PR has a migration" intro.
+          commentHeader: "We have found some dangerous change that is not related to SQL"
 ```

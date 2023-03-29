@@ -46,3 +46,5 @@ In your workflow file
       githubToken: ${{ secrets.GITHUB_TOKEN }}
       migration: "./path/to/migration"
 ```
+
+See [action.yml](action.yml) for more arguments.

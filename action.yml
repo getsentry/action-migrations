@@ -19,7 +19,7 @@ inputs:
     required: false
     default: '${{ github.token }}'
     description: 'GitHub Token (available as `secrets.GITHUB_TOKEN`)'
-  rawBody:
+  useRawBody:
     required: false
     default: 'false'
     description: 'When true, use the commands output directly as comment body, interpreting it as markdown.'

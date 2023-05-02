@@ -105,7 +105,10 @@ async function run(): Promise<void> {
 
       let body;
       if (useRawBody == 'true') {
-        body = output.trim();
+        // commentIntro needs to be present in body so that the bot edits
+        // existing comments and doesn't create new ones.
+        body = `<!-- ${commentIntro} -->
+        ${output.trim()}`
       } else {
         body = `${commentIntro}
 

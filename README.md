@@ -48,3 +48,9 @@ In your workflow file
 ```
 
 See [action.yml](action.yml) for more arguments.
+
+## Drafting a new release
+
+Anybody from engineering can release. Just go to [GitHub's create release
+page](https://github.com/getsentry/action-migrations/releases) and do it.
+Create a new tag vX.Y.Z, the rest doesn't really matter.

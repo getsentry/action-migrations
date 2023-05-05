@@ -108,7 +108,7 @@ async function run(): Promise<void> {
         // commentIntro needs to be present in body so that the bot edits
         // existing comments and doesn't create new ones.
         body = `<!-- ${commentIntro} -->
-        ${output.trim()}`
+${output}`;
       } else {
         body = `${commentIntro}
 

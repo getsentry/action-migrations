@@ -5,13 +5,16 @@ inputs:
   cmd:
     required: false
     description: "The command to run to generate SQL"
-    default: "sentry django sqlmigrate sentry"
+    default: "sentry django sqlmigrate"
   run:
     required: false
     description: 'Action for the action to take. Possible values: null, "placeholder"'
   name:
     required: false
     description: 'A unique name, required for multiple migrations in a Pull Request'
+  app_label:
+    required: false
+    description: 'A fallback app_label should one not be found in `migration`'
   migration:
     required: true
     description: 'file name (or number) for the migration'

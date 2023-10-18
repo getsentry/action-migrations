@@ -29,7 +29,7 @@ async function findBotComment(commentIntro: string) {
   );
 }
 
-async function createPlaceholderComment(commentIntro: string) {
+async function createPlaceholderComment(commentIntro: string): Promise<void> {
   // See if comment already exists
   const existingComment = await findBotComment(commentIntro);
 
@@ -56,6 +56,7 @@ async function run(): Promise<void> {
     const runInput: string = core.getInput('run');
     const command: string = core.getInput('cmd');
     const name: string = core.getInput('name');
+    const appLabel: string = core.getInput('app_label');
     const commentHeader: string = `This PR has a migration; here is the generated SQL for `;
     const migrationInput: string = core.getInput('migration');
     const useRawBody: string = core.getInput('useRawBody');
@@ -75,13 +76,13 @@ async function run(): Promise<void> {
     }
 
     // Transform migration input into usable name (e.g. either number or filename w/o extension)
-    const migrationName = getMigrationName(migrationInput);
-    core.debug(`Generating SQL for migration: ${migrationName} ...`);
+    const [djangoApp, migrationName] = getMigrationName(migrationInput, appLabel);
+    core.debug(`Generating SQL for migration: ${djangoApp} ${migrationName} ...`);
 
     let output = '';
     let error = '';
 
-    const exitCode = await exec(command, [migrationName], {
+    const exitCode = await exec(command, [djangoApp, migrationName], {
       listeners: {
         stdout: (data: Buffer) => {
           output += data.toString();

@@ -27,5 +27,5 @@ inputs:
     default: 'false'
     description: 'When true, use the commands output directly as comment body, interpreting it as markdown.'
 runs:
-  using: 'node12'
+  using: 'node20'
   main: 'dist/index.js'

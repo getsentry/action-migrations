@@ -16,7 +16,7 @@ const octokit = github.getOctokit(token);
 
 async function findBotComment(commentIntro: string) {
   // Look for existing comment
-  const {data: comments} = await octokit.issues.listComments({
+  const {data: comments} = await octokit.rest.issues.listComments({
     owner,
     repo,
     issue_number: prNum,
@@ -24,7 +24,9 @@ async function findBotComment(commentIntro: string) {
 
   return comments.find(
     comment =>
+      comment.user &&
       comment.user.login === 'github-actions[bot]' &&
+      comment.body &&
       comment.body.includes(commentIntro)
   );
 }
@@ -38,7 +40,7 @@ async function createPlaceholderComment(commentIntro: string): Promise<void> {
   }
 
   // Otherwise, create placeholder comment
-  octokit.issues.createComment({
+  octokit.rest.issues.createComment({
     owner,
     repo,
     issue_number: prNum,
@@ -76,8 +78,13 @@ async function run(): Promise<void> {
     }
 
     // Transform migration input into usable name (e.g. either number or filename w/o extension)
-    const [djangoApp, migrationName] = getMigrationName(migrationInput, appLabel);
-    core.debug(`Generating SQL for migration: ${djangoApp} ${migrationName} ...`);
+    const [djangoApp, migrationName] = getMigrationName(
+      migrationInput,
+      appLabel
+    );
+    core.debug(
+      `Generating SQL for migration: ${djangoApp} ${migrationName} ...`
+    );
 
     let output = '';
     let error = '';
@@ -123,7 +130,7 @@ ${output.trim()}
       // Update existing comment
       const previousComment = await findBotComment(commentIntro);
       if (previousComment) {
-        octokit.issues.updateComment({
+        octokit.rest.issues.updateComment({
           owner,
           repo,
           comment_id: previousComment.id,
@@ -134,7 +141,7 @@ ${output.trim()}
 
       // This shouldn't happen, but just in case it can't find the placeholder comment,
       // create a new one (e.g. if it got deleted)
-      octokit.issues.createComment({
+      octokit.rest.issues.createComment({
         owner,
         repo,
         issue_number: prNum,

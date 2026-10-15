@@ -4,6 +4,7 @@ import * as core from '@actions/core';
 import * as github from '@actions/github';
 import {exec} from '@actions/exec';
 
+import {Comment, commentName, marker, planComment} from './util/comments';
 import {getMigrationNames} from './util/getMigrationName';
 
 const [owner, repo] = (process.env.GITHUB_REPOSITORY || '').split('/');
@@ -14,43 +15,77 @@ const prNum = ev.pull_request.number;
 const token = core.getInput('githubToken');
 const octokit = github.getOctokit(token);
 
-async function findBotComment(commentIntro: string) {
-  // Look for existing comment
-  const {data: comments} = await octokit.rest.issues.listComments({
+async function listComments(): Promise<Comment[]> {
+  const comments = await octokit.paginate(octokit.rest.issues.listComments, {
     owner,
     repo,
     issue_number: prNum,
+    per_page: 100,
   });
 
-  return comments.find(
-    comment =>
-      comment.user &&
-      comment.user.login === 'github-actions[bot]' &&
-      comment.body &&
-      comment.body.includes(commentIntro)
-  );
+  return comments.map(comment => ({
+    id: comment.id,
+    body: comment.body ?? '',
+    isBot: comment.user?.login === 'github-actions[bot]',
+  }));
 }
 
-async function createPlaceholderComment(commentIntro: string): Promise<void> {
-  // See if comment already exists
-  const existingComment = await findBotComment(commentIntro);
-
-  if (existingComment) {
+async function createPlaceholderComment(
+  name: string,
+  commentIntro: string
+): Promise<void> {
+  const comments = await listComments();
+  if (comments.some(c => c.isBot && commentName(c.body) === name)) {
     return;
   }
 
-  // Otherwise, create placeholder comment
-  octokit.rest.issues.createComment({
+  await octokit.rest.issues.createComment({
     owner,
     repo,
     issue_number: prNum,
-    body: `${commentIntro}
+    body: `${marker(name)}
+${commentIntro}
 
 \`\`\`
 Please wait while I generate the SQL ...
 \`\`\`
 `.trim(),
   });
+}
+
+async function postComment(name: string, body: string): Promise<void> {
+  const plan = planComment(await listComments(), name, body);
+
+  if (plan.updateId !== null) {
+    await octokit.rest.issues.updateComment({
+      owner,
+      repo,
+      comment_id: plan.updateId,
+      body,
+    });
+  }
+
+  if (plan.create) {
+    await octokit.rest.issues.createComment({
+      owner,
+      repo,
+      issue_number: prNum,
+      body,
+    });
+  }
+
+  // Delete after posting so a failed post never leaves the PR without SQL.
+  for (const commentId of plan.deleteIds) {
+    try {
+      await octokit.rest.issues.deleteComment({
+        owner,
+        repo,
+        comment_id: commentId,
+      });
+    } catch (error) {
+      core.warning(`Failed to delete comment ${commentId}: ${error}`);
+    }
+  }
 }
 
 async function run(): Promise<void> {
@@ -71,7 +106,7 @@ async function run(): Promise<void> {
 
     if (runInput === 'placeholder') {
       core.debug('Creating placeholder comment...');
-      await createPlaceholderComment(commentIntro);
+      await createPlaceholderComment(name, commentIntro);
       core.debug('Finished creating placeholder comment...');
       return;
     }
@@ -81,13 +116,11 @@ async function run(): Promise<void> {
       return;
     }
 
-    // commentIntro needs to be present in body so that the bot edits
-    // existing comments and doesn't create new ones.
-    let body;
+    let body = `${marker(name)}\n`;
     if (useRawBody) {
-      body = `<!-- ${commentIntro} -->\n`;
+      body += `<!-- ${commentIntro} -->\n`;
     } else {
-      body = `${commentIntro}\n`;
+      body += `${commentIntro}\n`;
     }
 
     // Transform migration input into usable name (e.g. either number or filename w/o extension)
@@ -146,26 +179,7 @@ ${output.trim()}
 
     body = body.trim();
 
-    // Update existing comment
-    const previousComment = await findBotComment(commentIntro);
-    if (previousComment) {
-      octokit.rest.issues.updateComment({
-        owner,
-        repo,
-        comment_id: previousComment.id,
-        body,
-      });
-      return;
-    }
-
-    // This shouldn't happen, but just in case it can't find the placeholder comment,
-    // create a new one (e.g. if it got deleted)
-    octokit.rest.issues.createComment({
-      owner,
-      repo,
-      issue_number: prNum,
-      body,
-    });
+    await postComment(name, body);
   } catch (error) {
     if (error instanceof Error) {
       core.setFailed(error.message);

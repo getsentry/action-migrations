@@ -56,45 +56,83 @@ const fs_1 = __importDefault(__nccwpck_require__(9896));
 const core = __importStar(__nccwpck_require__(7484));
 const github = __importStar(__nccwpck_require__(3228));
 const exec_1 = __nccwpck_require__(5236);
+const comments_1 = __nccwpck_require__(47);
 const getMigrationName_1 = __nccwpck_require__(7970);
 const [owner, repo] = (process.env.GITHUB_REPOSITORY || '').split('/');
 const ev = JSON.parse(fs_1.default.readFileSync(process.env.GITHUB_EVENT_PATH || '', 'utf8'));
 const prNum = ev.pull_request.number;
 const token = core.getInput('githubToken');
 const octokit = github.getOctokit(token);
-function findBotComment(commentIntro) {
+function listComments() {
     return __awaiter(this, void 0, void 0, function* () {
-        // Look for existing comment
-        const { data: comments } = yield octokit.rest.issues.listComments({
+        const comments = yield octokit.paginate(octokit.rest.issues.listComments, {
             owner,
             repo,
             issue_number: prNum,
+            per_page: 100,
         });
-        return comments.find(comment => comment.user &&
-            comment.user.login === 'github-actions[bot]' &&
-            comment.body &&
-            comment.body.includes(commentIntro));
+        return comments.map(comment => {
+            var _a, _b;
+            return ({
+                id: comment.id,
+                body: (_a = comment.body) !== null && _a !== void 0 ? _a : '',
+                isBot: ((_b = comment.user) === null || _b === void 0 ? void 0 : _b.login) === 'github-actions[bot]',
+            });
+        });
     });
 }
-function createPlaceholderComment(commentIntro) {
+function createPlaceholderComment(name, commentIntro) {
     return __awaiter(this, void 0, void 0, function* () {
-        // See if comment already exists
-        const existingComment = yield findBotComment(commentIntro);
-        if (existingComment) {
+        const comments = yield listComments();
+        if (comments.some(c => c.isBot && (0, comments_1.commentName)(c.body) === name)) {
             return;
         }
-        // Otherwise, create placeholder comment
-        octokit.rest.issues.createComment({
+        yield octokit.rest.issues.createComment({
             owner,
             repo,
             issue_number: prNum,
-            body: `${commentIntro}
+            body: `${(0, comments_1.marker)(name)}
+${commentIntro}
 
 \`\`\`
 Please wait while I generate the SQL ...
 \`\`\`
 `.trim(),
         });
+    });
+}
+function postComment(name, body) {
+    return __awaiter(this, void 0, void 0, function* () {
+        const plan = (0, comments_1.planComment)(yield listComments(), name, body);
+        if (plan.updateId !== null) {
+            yield octokit.rest.issues.updateComment({
+                owner,
+                repo,
+                comment_id: plan.updateId,
+                body,
+            });
+        }
+        if (plan.create) {
+            yield octokit.rest.issues.createComment({
+                owner,
+                repo,
+                issue_number: prNum,
+                body,
+            });
+        }
+        // Delete after posting so a failed post never leaves the PR without SQL.
+        for (const commentId of plan.deleteIds) {
+            try {
+                yield octokit.rest.issues.deleteComment({
+                    owner,
+                    repo,
+                    comment_id: commentId,
+                });
+            }
+            catch (error) {
+                core.warning(`Failed to delete comment ${commentId}: ${error}`);
+            }
+        }
     });
 }
 function run() {
@@ -114,7 +152,7 @@ function run() {
             }
             if (runInput === 'placeholder') {
                 core.debug('Creating placeholder comment...');
-                yield createPlaceholderComment(commentIntro);
+                yield createPlaceholderComment(name, commentIntro);
                 core.debug('Finished creating placeholder comment...');
                 return;
             }
@@ -122,14 +160,12 @@ function run() {
                 core.debug('No input files');
                 return;
             }
-            // commentIntro needs to be present in body so that the bot edits
-            // existing comments and doesn't create new ones.
-            let body;
+            let body = `${(0, comments_1.marker)(name)}\n`;
             if (useRawBody) {
-                body = `<!-- ${commentIntro} -->\n`;
+                body += `<!-- ${commentIntro} -->\n`;
             }
             else {
-                body = `${commentIntro}\n`;
+                body += `${commentIntro}\n`;
             }
             // Transform migration input into usable name (e.g. either number or filename w/o extension)
             for (const [djangoApp, migrationName] of (0, getMigrationName_1.getMigrationNames)(migrationInput, appLabel)) {
@@ -178,25 +214,7 @@ ${output.trim()}
                 }
             }
             body = body.trim();
-            // Update existing comment
-            const previousComment = yield findBotComment(commentIntro);
-            if (previousComment) {
-                octokit.rest.issues.updateComment({
-                    owner,
-                    repo,
-                    comment_id: previousComment.id,
-                    body,
-                });
-                return;
-            }
-            // This shouldn't happen, but just in case it can't find the placeholder comment,
-            // create a new one (e.g. if it got deleted)
-            octokit.rest.issues.createComment({
-                owner,
-                repo,
-                issue_number: prNum,
-                body,
-            });
+            yield postComment(name, body);
         }
         catch (error) {
             if (error instanceof Error) {
@@ -206,6 +224,65 @@ ${output.trim()}
     });
 }
 run();
+
+
+/***/ }),
+
+/***/ 47:
+/***/ ((__unused_webpack_module, exports) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.marker = marker;
+exports.commentName = commentName;
+exports.planComment = planComment;
+const MARKER_RE = /^<!-- action-migrations:name=(.*?) -->\n?/;
+// Comments posted before the marker was added. The name suffix is only present
+// when the `name` input was set.
+const LEGACY_RE = /^(?:<!-- )?This PR has a migration; here is the generated SQL for {2}`[^`]*`(?: \(([^)]*)\))?/;
+function marker(name) {
+    return `<!-- action-migrations:name=${name} -->`;
+}
+// Returns the `name` input that produced the comment, or null if this action
+// did not post it.
+function commentName(body) {
+    var _a;
+    const markerMatch = body.match(MARKER_RE);
+    if (markerMatch) {
+        return markerMatch[1];
+    }
+    const legacyMatch = body.match(LEGACY_RE);
+    if (legacyMatch) {
+        return (_a = legacyMatch[1]) !== null && _a !== void 0 ? _a : '';
+    }
+    return null;
+}
+function stripMarker(body) {
+    return body.replace(MARKER_RE, '');
+}
+// Keep a single comment per name. Edit it in place when nothing but our own
+// comments follow it or the content is unchanged; otherwise post a new one at
+// the bottom and delete the old ones.
+function planComment(comments, name, body) {
+    const ours = comments.filter(c => c.isBot && commentName(c.body) === name);
+    if (ours.length === 0) {
+        return { updateId: null, create: true, deleteIds: [] };
+    }
+    const latest = ours[ours.length - 1];
+    const atBottom = comments
+        .slice(comments.indexOf(latest) + 1)
+        .every(c => c.isBot && commentName(c.body) !== null);
+    const unchanged = stripMarker(latest.body) === stripMarker(body);
+    if (atBottom || unchanged) {
+        return {
+            updateId: latest.body === body ? null : latest.id,
+            create: false,
+            deleteIds: ours.slice(0, -1).map(c => c.id),
+        };
+    }
+    return { updateId: null, create: true, deleteIds: ours.map(c => c.id) };
+}
 
 
 /***/ }),

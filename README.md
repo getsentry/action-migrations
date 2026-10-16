@@ -49,6 +49,10 @@ In your workflow file
 
 See [action.yml](action.yml) for more arguments.
 
+The action keeps one comment per `name`. It edits that comment when nothing but
+this action's comments follow it, or when the SQL is unchanged. Otherwise it
+posts a new comment at the bottom and deletes the old ones.
+
 ## Drafting a new release
 
 Anybody from engineering can release. Just go to [GitHub's create release

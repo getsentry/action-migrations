@@ -9,6 +9,7 @@ import {
   commentIntro,
   createPlaceholder,
   marker,
+  removeComments,
   syncComment,
 } from './util/comments';
 import {getMigrationNames} from './util/getMigrationName';
@@ -148,7 +149,8 @@ ${output.trim()}
     }
 
     if (!hasOutput) {
-      core.debug('Empty output from all migrations, skipping comment');
+      core.debug('Empty output from all migrations, removing any comment');
+      await removeComments(client, name);
       return;
     }
 

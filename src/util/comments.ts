@@ -103,7 +103,24 @@ export async function syncComment(
   }
 
   // Delete after posting so a failed post never leaves the PR without SQL.
-  for (const id of plan.deleteIds) {
+  await deleteComments(client, plan.deleteIds);
+}
+
+// Delete every comment for this name, e.g. when the PR no longer has any SQL
+// to show, so stale SQL or a placeholder isn't left behind.
+export async function removeComments(
+  client: CommentClient,
+  name: string
+): Promise<void> {
+  const ids = ownComments(await client.list(), name).map(c => c.id);
+  await deleteComments(client, ids);
+}
+
+async function deleteComments(
+  client: CommentClient,
+  ids: number[]
+): Promise<void> {
+  for (const id of ids) {
     try {
       await client.remove(id);
     } catch (error) {

@@ -135,6 +135,7 @@ function run() {
             else {
                 body += `${intro}\n`;
             }
+            let hasOutput = false;
             // Transform migration input into usable name (e.g. either number or filename w/o extension)
             for (const [djangoApp, migrationName] of (0, getMigrationName_1.getMigrationNames)(migrationInput, appLabel)) {
                 core.debug(`Generating SQL for migration: ${djangoApp} ${migrationName} ...`);
@@ -160,6 +161,7 @@ function run() {
                 }
                 if (output) {
                     core.debug(output);
+                    hasOutput = true;
                     if (useRawBody) {
                         body += `\
 <!-- for ${migrationName} in ${djangoApp} -->
@@ -180,6 +182,10 @@ ${output.trim()}
                 else {
                     core.debug(`Empty output from migration ${migrationName} ${djangoApp}`);
                 }
+            }
+            if (!hasOutput) {
+                core.debug('Empty output from all migrations, skipping comment');
+                return;
             }
             body = body.trim();
             yield (0, comments_1.syncComment)(client, name, body);

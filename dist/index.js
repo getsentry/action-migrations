@@ -135,6 +135,7 @@ function run() {
             else {
                 body += `${intro}\n`;
             }
+            let hasOutput = false;
             // Transform migration input into usable name (e.g. either number or filename w/o extension)
             for (const [djangoApp, migrationName] of (0, getMigrationName_1.getMigrationNames)(migrationInput, appLabel)) {
                 core.debug(`Generating SQL for migration: ${djangoApp} ${migrationName} ...`);
@@ -160,6 +161,7 @@ function run() {
                 }
                 if (output) {
                     core.debug(output);
+                    hasOutput = true;
                     if (useRawBody) {
                         body += `\
 <!-- for ${migrationName} in ${djangoApp} -->
@@ -180,6 +182,11 @@ ${output.trim()}
                 else {
                     core.debug(`Empty output from migration ${migrationName} ${djangoApp}`);
                 }
+            }
+            if (!hasOutput) {
+                core.debug('Empty output from all migrations, removing any comment');
+                yield (0, comments_1.removeComments)(client, name);
+                return;
             }
             body = body.trim();
             yield (0, comments_1.syncComment)(client, name, body);
@@ -249,6 +256,7 @@ exports.commentIntro = commentIntro;
 exports.commentName = commentName;
 exports.planComment = planComment;
 exports.syncComment = syncComment;
+exports.removeComments = removeComments;
 exports.createPlaceholder = createPlaceholder;
 const core = __importStar(__nccwpck_require__(7484));
 const HEADER = 'This PR has a migration; here is the generated SQL for ';
@@ -313,7 +321,20 @@ function syncComment(client, name, body) {
             yield client.create(body);
         }
         // Delete after posting so a failed post never leaves the PR without SQL.
-        for (const id of plan.deleteIds) {
+        yield deleteComments(client, plan.deleteIds);
+    });
+}
+// Delete every comment for this name, e.g. when the PR no longer has any SQL
+// to show, so stale SQL or a placeholder isn't left behind.
+function removeComments(client, name) {
+    return __awaiter(this, void 0, void 0, function* () {
+        const ids = ownComments(yield client.list(), name).map(c => c.id);
+        yield deleteComments(client, ids);
+    });
+}
+function deleteComments(client, ids) {
+    return __awaiter(this, void 0, void 0, function* () {
+        for (const id of ids) {
             try {
                 yield client.remove(id);
             }

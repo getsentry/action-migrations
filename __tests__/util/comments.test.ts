@@ -8,6 +8,7 @@ import {
   createPlaceholder,
   marker,
   planComment,
+  removeComments,
   syncComment,
 } from '@app/util/comments';
 
@@ -239,6 +240,26 @@ describe('createPlaceholder', () => {
   test('skips when a comment exists', async () => {
     const {client, calls} = fakeClient([bot(1, legacy('primary', 'a.py', 'x'))]);
     await createPlaceholder(client, 'primary', body('primary', 'a.py', 'wait'));
+    expect(calls).toEqual([]);
+  });
+});
+
+describe('removeComments', () => {
+  test('removes only comments for this name', async () => {
+    const {client, comments, calls} = fakeClient([
+      bot(1, body('primary', 'a.py', 'x')),
+      human,
+      bot(2, legacy('primary', 'a.py', 'wait')),
+      bot(3, body('control', 'a.py', 'x')),
+    ]);
+    await removeComments(client, 'primary');
+    expect(calls).toEqual(['remove 1', 'remove 2']);
+    expect(comments.map(c => c.id)).toEqual([99, 3]);
+  });
+
+  test('does nothing when there is no comment', async () => {
+    const {client, calls} = fakeClient([human]);
+    await removeComments(client, 'primary');
     expect(calls).toEqual([]);
   });
 });

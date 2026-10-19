@@ -9,6 +9,7 @@ import {
   commentIntro,
   createPlaceholder,
   marker,
+  removeComments,
   syncComment,
 } from './util/comments';
 import {getMigrationNames} from './util/getMigrationName';
@@ -90,6 +91,8 @@ async function run(): Promise<void> {
       body += `${intro}\n`;
     }
 
+    let hasOutput = false;
+
     // Transform migration input into usable name (e.g. either number or filename w/o extension)
     for (const [djangoApp, migrationName] of getMigrationNames(
       migrationInput,
@@ -123,6 +126,7 @@ async function run(): Promise<void> {
 
       if (output) {
         core.debug(output);
+        hasOutput = true;
 
         if (useRawBody) {
           body += `\
@@ -142,6 +146,12 @@ ${output.trim()}
       } else {
         core.debug(`Empty output from migration ${migrationName} ${djangoApp}`);
       }
+    }
+
+    if (!hasOutput) {
+      core.debug('Empty output from all migrations, removing any comment');
+      await removeComments(client, name);
+      return;
     }
 
     body = body.trim();
